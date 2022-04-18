@@ -8,12 +8,14 @@
 <label for="roll_3">Roll 3</label>
 <input type="text" name="roll_3">
 
-<input type="submit">
+<input type="submit" value="Add frame">
 </form>
+
+<br>
+<br>
+
+<a href="flush.php">Flush session</a>
 
 <?php
 
-
-
 var_dump($_SESSION);
-print_r($_SESSION['scores']);
