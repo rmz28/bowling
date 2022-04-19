@@ -28,7 +28,7 @@ class Frame {
 
     protected function setFrameNo($frameNo): void
     {
-        $this->frameNo = $frameNo;
+        $this->frameNo = (int)$frameNo;
     }
     protected function setIsStrike(): void
     {

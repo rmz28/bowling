@@ -121,27 +121,6 @@ class Calculator {
         $frameObj->frameBonus = $bonus;
     }
 
-//    protected function isFrameSpare(int $frame): bool
-//    {
-//        if($this->scores[$frame]['rolls']['roll_1'] < self::PIN_COUNT
-//        && $this->scores[$frame]['rolls']['roll_2'] < self::PIN_COUNT
-//        && $this->scores[$frame]['rolls']['roll_1'] + $this->scores[$frame]['rolls']['roll_2'] === self::PIN_COUNT){
-//            return true;
-//        }
-//
-//        return false;
-//    }
-
-//    protected function isFrameStrike(int $frame): bool
-//    {
-//        return $this->scores[$frame]['rolls']['roll_1'] === 10;
-//    }
-
-//    protected function isFrameFinal(int $frame): bool
-//    {
-//        return $frame === self::FINAL_FRAME_NO;
-//    }
-
     protected function isFrameRolled(int $frame): bool
     {
         return isset($this->scores[$frame]);

@@ -18,7 +18,7 @@ use \PHPUnit\Framework\TestCase;
         $this->assertEquals($dataSet['results_expected'], $results);
     }
 
-    public function dataSet()
+    public function dataSet(): array
     {
         $dataSet = [];
 
