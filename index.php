@@ -12,6 +12,6 @@ if (!empty($_POST)){
 	$calculator->setCurrentFrameData($_POST);
 }
 
-$_SESSION['scores'] = $calculator->calculateScores();
+$_SESSION['scores'] = json_decode(json_encode($calculator->calculateScores()), true);
 
 include_once('form.php');

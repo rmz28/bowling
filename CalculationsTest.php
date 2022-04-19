@@ -1,5 +1,5 @@
 <?php
-include_once('Calculator.php');
+require('Calculator.php');
 
 use \PHPUnit\Framework\TestCase;
 
@@ -12,7 +12,7 @@ use \PHPUnit\Framework\TestCase;
         $calculator->loadScores($dataSet['data']);
         $results = $calculator->calculateScores();
         $results = array_map(function($value){
-            return $value['frame_final_score'];
+            return $value->finalScore;
         }, $results);
 
         $this->assertEquals($dataSet['results_expected'], $results);
@@ -98,6 +98,7 @@ use \PHPUnit\Framework\TestCase;
 
         foreach($data as $frameNo => $frameData){
                 $dataSet['data'][$frameNo]['rolls'] = $frameData['rolls'];
+                $dataSet['data'][$frameNo]['frameNo'] = $frameNo;
                 $dataSet['results_expected'][$frameNo] = $frameData['frame_final_score'];
         }
 

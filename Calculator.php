@@ -1,4 +1,5 @@
 <?php
+require 'Frame.php';
 
 class Calculator {
 	
@@ -10,7 +11,11 @@ class Calculator {
 
 	public function loadScores(array $scores): void
 	{
-		$this->scores = $scores;
+        $count = 0;
+        foreach($scores as $frame){
+            $count++;
+            $this->scores[$frame['frameNo']] = new Frame($frame['rolls'], $count);
+        }
 	}
 
 	protected function setCurrentFrame(): void
@@ -26,88 +31,86 @@ class Calculator {
             die('Game is over');
         }
 
-        //backend validation | only final frame has third roll
-        if(!$this->isFrameFinal($this->currentFrame)){
-            unset($currentFrameData['roll_3']);
-        }
-
 		$currentFrameData = array_map(function($value){
 				return (int)$value;
 			}, $currentFrameData);
 
-
 		$this->currentFrameData['rolls'] = $currentFrameData;
-        $this->scores[$this->currentFrame] = $this->currentFrameData;
+        $this->scores[$this->currentFrame] = new Frame($this->currentFrameData['rolls'], $this->currentFrame);
+
+        //backend validation | only final frame has third roll
+        if(!$this->scores[$this->currentFrame]->isFinal){
+            unset($this->scores[$this->currentFrame]->rolls['roll_3']);
+        }
 	}
 
 	public function calculateScores(): array
 	{
-		foreach($this->scores as $frame => $frameScores){
-
-            $previousFrameScore = $frame > 1 ? $this->scores[$frame-1]['frame_final_score'] : 0;
-            $this->scores[$frame]['frame_total_score'] = $this->getFrameTotalScore($frame);
-            $this->scores[$frame]['frame_final_score'] =
-                $previousFrameScore + $this->scores[$frame]['frame_total_score'];
+		foreach($this->scores as $frameObj){
+            $previousFrameObj = $frameObj->frameNo > 1 ? $this->scores[$frameObj->frameNo-1] : null;
+            $previousFrameScore = !is_null($previousFrameObj) ? $previousFrameObj->finalScore : 0;
+            $this->setFrameTotalScore($frameObj);
+            $frameObj->finalScore = $previousFrameScore + $frameObj->frameTotal;
         }
 
         return $this->scores;
 	}
 
-    protected function getFrameTotalScore(int $frame): ?int
+    protected function setFrameTotalScore(Frame $frameObj): void
     {
         $frameTotal = null;
 
         //usual frames
-        if (!$this->isFrameFinal($frame)) {
+        if (!$frameObj->isFinal) {
             if (
-                !$this->isFrameSpare($frame)
-                && !$this->isFrameStrike($frame)
+                !$frameObj->isSpare
+                && !$frameObj->isStrike
             ) {
-                $frameTotal = $this->scores[$frame]['rolls']['roll_1'] + $this->scores[$frame]['rolls']['roll_2'];
-            } elseif ($this->isFrameSpare($frame)) {
-                $frameBonus = $this->getFrameBonus($frame, 'spare');
-                $frameTotal = !is_null($frameBonus)
-                    ? (self::PIN_COUNT + $frameBonus)
+                $frameTotal = $frameObj->rolls['roll_1'] + $frameObj->rolls['roll_2'];
+            } elseif ($frameObj->isSpare) {
+                $this->setFrameBonus($frameObj, 'spare');
+                $frameTotal = !is_null($frameObj->frameBonus)
+                    ? (self::PIN_COUNT + $frameObj->frameBonus)
                     : null;
-            } elseif ($this->isFrameStrike($frame)) {
-                $frameBonus = $this->getFrameBonus($frame, 'strike');
-                $frameTotal = !is_null($frameBonus)
-                    ? (self::PIN_COUNT + $frameBonus)
+            } elseif ($frameObj->isStrike) {
+                $this->setFrameBonus($frameObj, 'strike');
+                $frameTotal = !is_null($frameObj->frameBonus)
+                    ? (self::PIN_COUNT + $frameObj->frameBonus)
                     : null;
             }
         } else {
             //last (10th) frame
-            $frameTotal = array_sum($this->scores[$frame]['rolls']);
+            $frameTotal = array_sum($frameObj->rolls);
         }
 
-        return $frameTotal;
+        $frameObj->frameTotal = $frameTotal;
     }
 
-    protected function getFrameBonus(int $frame, string $bonusType): ?int
+    protected function setFrameBonus(Frame $frameObj, string $bonusType): void
     {
-        $nextFrame = $frame+1;
-        $nextFrameRolls = $this->isFrameRolled($nextFrame) ? $this->scores[$nextFrame]['rolls'] : null;
+        $nextFrame = $frameObj->frameNo+1;
+        $nextFrameObj = $this->isFrameRolled($nextFrame) ? $this->scores[$nextFrame] : null;
 
         $bonus = null;
 
-        if(!is_null($nextFrameRolls)){
+        if(!is_null($nextFrameObj)){
             if($bonusType === 'spare'){
-                $bonus = $nextFrameRolls['roll_1'];
+                $bonus = $nextFrameObj->rolls['roll_1'];
             } elseif($bonusType === 'strike') {
-                if($frame <= (self::FINAL_FRAME_NO - 2)){
-                    if($this->isFrameStrike($nextFrame)){
+                if($frameObj->frameNo <= (self::FINAL_FRAME_NO - 2)){
+                    if($nextFrameObj->isStrike){
                         $furtherFrame = $nextFrame+1;
+                        $furtherFrameObj = $this->scores[$nextFrame+1];
 
                         if($this->isFrameRolled($furtherFrame)){
-                            $furtherFrameRolls = $this->scores[$furtherFrame]['rolls'];
-                            $bonus = $nextFrameRolls['roll_1']
-                                + $furtherFrameRolls['roll_1'];
+                            $bonus = $nextFrameObj->rolls['roll_1']
+                                + $furtherFrameObj->rolls['roll_1'];
                         }
                     } else {
-                        $bonus = $nextFrameRolls['roll_1'] + $nextFrameRolls['roll_2'];
+                        $bonus = $nextFrameObj->rolls['roll_1'] + $nextFrameObj->rolls['roll_2'];
                     }
                 } else {
-                    $bonus = $nextFrameRolls['roll_1'] + $nextFrameRolls['roll_2'];
+                    $bonus = $nextFrameObj->rolls['roll_1'] + $nextFrameObj->rolls['roll_2'];
                 }
 
             } else {
@@ -115,29 +118,29 @@ class Calculator {
             }
         }
 
-        return $bonus;
+        $frameObj->frameBonus = $bonus;
     }
 
-    protected function isFrameSpare(int $frame): bool
-    {
-        if($this->scores[$frame]['rolls']['roll_1'] < self::PIN_COUNT
-        && $this->scores[$frame]['rolls']['roll_2'] < self::PIN_COUNT
-        && $this->scores[$frame]['rolls']['roll_1'] + $this->scores[$frame]['rolls']['roll_2'] === self::PIN_COUNT){
-            return true;
-        }
+//    protected function isFrameSpare(int $frame): bool
+//    {
+//        if($this->scores[$frame]['rolls']['roll_1'] < self::PIN_COUNT
+//        && $this->scores[$frame]['rolls']['roll_2'] < self::PIN_COUNT
+//        && $this->scores[$frame]['rolls']['roll_1'] + $this->scores[$frame]['rolls']['roll_2'] === self::PIN_COUNT){
+//            return true;
+//        }
+//
+//        return false;
+//    }
 
-        return false;
-    }
+//    protected function isFrameStrike(int $frame): bool
+//    {
+//        return $this->scores[$frame]['rolls']['roll_1'] === 10;
+//    }
 
-    protected function isFrameStrike(int $frame): bool
-    {
-        return $this->scores[$frame]['rolls']['roll_1'] === 10;
-    }
-
-    protected function isFrameFinal(int $frame): bool
-    {
-        return $frame === self::FINAL_FRAME_NO;
-    }
+//    protected function isFrameFinal(int $frame): bool
+//    {
+//        return $frame === self::FINAL_FRAME_NO;
+//    }
 
     protected function isFrameRolled(int $frame): bool
     {
