@@ -50,7 +50,10 @@ class Calculator {
             $previousFrameObj = $frameObj->frameNo > 1 ? $this->scores[$frameObj->frameNo-1] : null;
             $previousFrameScore = !is_null($previousFrameObj) ? $previousFrameObj->finalScore : 0;
             $this->setFrameTotalScore($frameObj);
-            $frameObj->finalScore = $previousFrameScore + $frameObj->frameTotal;
+
+            if(!is_null($frameObj->frameTotal)){
+                $frameObj->setFinalScore($previousFrameScore + $frameObj->frameTotal);
+            }
         }
 
         return $this->scores;
@@ -83,7 +86,7 @@ class Calculator {
             $frameTotal = array_sum($frameObj->rolls);
         }
 
-        $frameObj->frameTotal = $frameTotal;
+        $frameObj->setFrameTotal($frameTotal);
     }
 
     protected function setFrameBonus(Frame $frameObj, string $bonusType): void
@@ -100,9 +103,9 @@ class Calculator {
                 if($frameObj->frameNo <= (self::FINAL_FRAME_NO - 2)){
                     if($nextFrameObj->isStrike){
                         $furtherFrame = $nextFrame+1;
-                        $furtherFrameObj = $this->scores[$nextFrame+1];
 
                         if($this->isFrameRolled($furtherFrame)){
+                            $furtherFrameObj = $this->scores[$nextFrame+1];
                             $bonus = $nextFrameObj->rolls['roll_1']
                                 + $furtherFrameObj->rolls['roll_1'];
                         }
@@ -118,7 +121,7 @@ class Calculator {
             }
         }
 
-        $frameObj->frameBonus = $bonus;
+        $frameObj->setFrameBonus($bonus);
     }
 
     protected function isFrameRolled(int $frame): bool

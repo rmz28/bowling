@@ -46,4 +46,19 @@ class Frame {
             $this->isSpare = false;
         }
     }
+
+    public function setFrameBonus($frameBonus): void
+    {
+        $this->frameBonus = $frameBonus;
+    }
+
+    public function setFrameTotal($frameTotal): void
+    {
+        $this->frameTotal = $frameTotal;
+    }
+
+    public function setFinalScore($finalScore): void
+    {
+        $this->finalScore = $finalScore;
+    }
 }
